@@ -3,56 +3,117 @@
   apt_repository:
     repo: ppa:stesie/libv8
 
-- name: Install libv8
+- name: Ensure build-essential is installed
+  apt:
+    name: "build-essential"
+
+- name: Ensure libv8 is installed
   apt:
     name: "libv8-7.5"
 
-- name: Clone php-v8js source repository
+- name: Ensure libglib2.0 is installed
+  apt:
+    name: "libglib2.0-dev"
+
+- name: Clone depot_tools
+  git:
+    repo: "https://chromium.googlesource.com/chromium/tools/depot_tools.git"
+    dest: "{{ depot_tools_compile_dir }}"
+    force: yes
+    update: yes
+
+- name: Download v8
+  shell: >
+    {{ depot_tools_compile_dir }}/fetch v8
+  args:
+    chdir: /tmp
+
+- name: Install v8 build tools
+  shell: >
+    tools/dev/v8gen.py -vv x64.release -- is_component_build=true use_custom_libcxx=false
+  args:
+    chdir: "{{ v8_compile_dir }}"
+
+- name: Build the v8 engine
+  shell: >
+    {{ depot_tools_compile_dir }}/ninja -C out.gn/x64.release/
+  args:
+    chdir: "{{ v8_compile_dir }}"
+  become: yes
+
+- name: Create v8 install directories
+  file:
+    path: "{{ v8_dir }}/{{ item.dir }}"
+    state: directory
+  loop:
+    - { dir: lib }
+    - { dir: include }
+
+- name: Copy binaries from gn to v8
+  shell: >
+    cp out.gn/x64.release/lib*.so out.gn/x64.release/*_blob.bin
+  args:
+    chdir: "{{ v8_compile_dir }}"
+  become: yes
+
+- name: Copy icudtl.dat from gn to v8
+  shell: >
+    cp out.gn/x64.release/icudtl.dat /opt/v8/lib/
+  args:
+    chdir: "{{ v8_compile_dir }}"
+  become: yes
+
+- name: Copy libraries from gn to v8
+  shell: >
+    cp -R include/* /opt/v8/lib/
+  args:
+    chdir: "{{ v8_compile_dir }}"
+  become: yes
+
+- name: Clone php-v8js
   git:
     repo: "https://github.com/phpv8/v8js.git"
-    dest: /tmp/
+    dest: "{{ phpv8_compile_dir }}"
+    version: "{{ phpv8_version }}"
+    force: yes
+    update: yes
 
-- name: Run phpize on php-v8js source
+- name: Run phpize on php-v8js extension source
   shell: >
     phpize
   args:
-    chdir: /tmp/v8js
+    chdir: "{{ phpv8_compile_dir }}"
 
 - name: Configure php-v8js
   shell: >
     ./configure --with-v8js=/opt/v8 LDFLAGS="-lstdc++"
   args:
-    chdir: /tmp/v8js
+    chdir: "{{ phpv8_compile_dir }}"
 
 - name: Compile php-v8js
   shell: >
     make
   args:
-    chdir: /tmp/v8js
+    chdir: "{{ phpv8_compile_dir }}"
 
 - name: Test compiled php-v8js
   shell: >
     make test
   args:
-    chdir: /tmp/v8js
+    chdir: "{{ phpv8_compile_dir }}"
 
 - name: Install compiled php-v8js
-  become: yes
   shell: >
     make install
   args:
-    chdir: /tmp/v8js
+    chdir: "{{ phpv8_compile_dir }}"
+  become: yes
 
 - name: Add php-v8js extension to php.ini
   shell: >
-    echo "extension=v8js.so" >> {{ php_ini_path }}
+    echo "extension=v8js.so" >> /etc/php/{{ php_version }}/fpm/php.ini
 
 - name: Reload php-fpm
   service:
-    name: 'php{{ php_version }}-fpm'
-    state: reloaded
-
-- name: Reload nginx
-  service:
-    name: nginx
+    name: "php{{ php_version }}-fpm"
     state: reloaded

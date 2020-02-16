@@ -1,3 +1,8 @@
 ---
 php_ini_path: /etc/php/7.3/fpm/php.ini
 php_version: 7.3
+phpv8_version: master
+v8_dir: /opt/v8
+v8_compile_dir: /tmp/v8
+phpv8_compile_dir: /tmp/v8js
+depot_tools_compile_dir: /tmp/depot_tools
