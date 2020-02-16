@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Kelly Mears
+  description: Install and configure the php-v8js extension
+  company: Tiny Pixel Collective
+  license: MIT
+  min_ansible_version: 2.2
+  platforms:
+  - name: Ubuntu
+    versions:
+      - xenial
+  galaxy_tags:
+    - roots
+    - trellis
+    - php
+    - v8js
+    - system
+dependencies: []

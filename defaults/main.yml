@@ -1,0 +1,3 @@
+---
+php_ini_path: /etc/php/7.3/fpm/php.ini
+php_version: 7.3

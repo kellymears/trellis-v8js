@@ -1,0 +1,22 @@
+---
+- name: Add stesie/libv8 apt repository
+  apt_repository:
+    repo: ppa:stesie/libv8
+
+- name: Install libv8-7.5
+  apt:
+    name: "libv8-7.5"
+
+- name: Add php-v8js extension
+  shell: >
+    echo "extension=v8js.so" >> {{ php_ini_path }}
+
+- name: reload php-fpm
+  service:
+    name: 'php{{ php_version }}-fpm'
+    state: reloaded
+
+- name: reload nginx
+  service:
+    name: nginx
+    state: reloaded
