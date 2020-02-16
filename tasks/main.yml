@@ -1,15 +1,47 @@
 ---
-- name: Add stesie/libv8 apt repository
+- name: Add ppa:stesie/libv8
   apt_repository:
     repo: ppa:stesie/libv8
 
-- name: Install libv8-7.5
+- name: Install libv8
   apt:
     name: "libv8-7.5"
 
-- name: Install phpv8-js
-  apt:
-    name: "php-v8"
+- name: Clone php-v8js source repository
+  git:
+    repo: "https://github.com/phpv8/v8js.git"
+    dest: /tmp/
+
+- name: Run phpize on php-v8js source
+  shell: >
+    phpize
+  args:
+    chdir: /tmp/v8js
+
+- name: Configure php-v8js
+  shell: >
+    ./configure --with-v8js=/opt/v8 LDFLAGS="-lstdc++"
+  args:
+    chdir: /tmp/v8js
+
+- name: Compile php-v8js
+  shell: >
+    make
+  args:
+    chdir: /tmp/v8js
+
+- name: Test compiled php-v8js
+  shell: >
+    make test
+  args:
+    chdir: /tmp/v8js
+
+- name: Install compiled php-v8js
+  become: yes
+  shell: >
+    make install
+  args:
+    chdir: /tmp/v8js
 
 - name: Add php-v8js extension to php.ini
   shell: >
